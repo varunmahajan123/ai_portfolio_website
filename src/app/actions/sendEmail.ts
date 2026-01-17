@@ -21,6 +21,10 @@ export async function sendEmail(formData: FormData) {
             },
         });
 
+        console.log("Debug Env Vars:");
+        console.log("GMAIL_USER:", process.env.GMAIL_USER ? "Set" : "Missing");
+        console.log("GMAIL_PASS:", process.env.GMAIL_PASS ? "Set" : "Missing");
+
         const mailOptions = {
             from: `"${name}" <${process.env.GMAIL_USER}>`, // Authenticated sender
             to: process.env.GMAIL_USER, // User's email
