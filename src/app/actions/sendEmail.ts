@@ -5,19 +5,45 @@ export async function sendEmail(formData: FormData) {
     const email = formData.get("email") as string;
     const message = formData.get("message") as string;
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
     // Basic validation
     if (!name || !email || !message) {
         return { success: false, error: "Missing fields" };
     }
 
-    // TODO: Integrate actual SMTP like Nodemailer or Resend
-    console.log("--- MOCK EMAIL SENT ---");
-    console.log("From:", name, email);
-    console.log("Message:", message);
-    console.log("-----------------------");
+    try {
+        const nodemailer = require("nodemailer");
 
-    return { success: true };
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.GMAIL_USER,
+                pass: process.env.GMAIL_PASS,
+            },
+        });
+
+        const mailOptions = {
+            from: `"${name}" <${process.env.GMAIL_USER}>`, // Authenticated sender
+            to: process.env.GMAIL_USER, // User's email
+            replyTo: email, // Visitor's email
+            subject: `New Message from ${name} (Portfolio)`,
+            text: message,
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                    <h2 style="color: #000;">New Contact Form Submission</h2>
+                    <p><strong>Name:</strong> ${name}</p>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <hr style="border: 1px solid #eee; margin: 20px 0;" />
+                    <p><strong>Message:</strong></p>
+                    <p style="background: #f9f9f9; padding: 15px; border-radius: 5px;">${message.replace(/\n/g, '<br>')}</p>
+                </div>
+            `,
+        };
+
+        await transporter.sendMail(mailOptions);
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error sending email:", error);
+        return { success: false, error: "Failed to send email" };
+    }
 }
