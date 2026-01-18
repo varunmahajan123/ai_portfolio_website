@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import AnimatedButton from "./ui/AnimatedButton";
 import Link from "next/link";
 import { useState } from "react";
 import ContactModal from "./ContactModal";
@@ -23,31 +24,23 @@ export default function Navbar() {
                 </div>
 
                 <div className="flex items-center gap-6 pointer-events-auto">
-                    <Link
-                        href="#work"
-                        className="text-sm font-medium text-white/80 hover:text-white transition-colors mix-blend-difference"
-                    >
+                    <AnimatedButton href="#projects" variant="ghost" className="text-sm font-medium mix-blend-difference">
                         Work
-                    </Link>
-                    <Link
-                        href="#about"
-                        className="text-sm font-medium text-white/80 hover:text-white transition-colors mix-blend-difference"
-                    >
-                        About
-                    </Link>
-                    <button
-                        onClick={() => setIsContactOpen(true)}
-                        className="text-sm font-medium text-white/80 hover:text-white transition-colors mix-blend-difference"
-                    >
-                        Contact
-                    </button>
+                    </AnimatedButton>
 
-                    <button
-                        onClick={() => setIsContactOpen(true)}
-                        className="hidden md:block px-5 py-2 rounded-full bg-white text-black text-sm font-medium hover:scale-105 transition-transform duration-300"
-                    >
-                        Let's Talk
-                    </button>
+                    {/* Using standard link to avoid double-button nesting for simple anchors if needed, 
+                       but AnimatedButton supports href which renders an <a>. 
+                   */}
+
+                    <AnimatedButton onClick={() => setIsContactOpen(true)} variant="ghost" className="text-sm font-medium mix-blend-difference">
+                        Contact
+                    </AnimatedButton>
+
+                    <div className="hidden md:block">
+                        <AnimatedButton onClick={() => setIsContactOpen(true)} variant="primary" className="text-black text-sm px-5 py-2">
+                            Let's Talk
+                        </AnimatedButton>
+                    </div>
                 </div>
             </motion.nav>
             <ContactModal isOpen={isContactOpen} onClose={() => setIsContactOpen(false)} />
