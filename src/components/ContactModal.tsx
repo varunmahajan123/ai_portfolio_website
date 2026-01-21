@@ -12,6 +12,7 @@ interface ContactModalProps {
 export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+    const [errorMessage, setErrorMessage] = useState<string>("");
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -29,6 +30,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
             }, 2000);
         } else {
             setStatus("error");
+            setErrorMessage(result.error || "Something went wrong.");
         }
         setLoading(false);
     };
@@ -106,7 +108,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
                                     </div>
 
                                     {status === "error" && (
-                                        <p className="text-red-400 text-sm text-center">Something went wrong. Please try again.</p>
+                                        <p className="text-red-400 text-sm text-center">{errorMessage}</p>
                                     )}
 
                                     <button

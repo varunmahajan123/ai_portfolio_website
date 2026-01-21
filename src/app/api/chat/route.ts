@@ -1,68 +1,88 @@
 import { PERSONAL_INFO, SOCIALS } from "@/lib/data";
 import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
     const lastMessage = messages[messages.length - 1]?.content || "";
-    console.log("Chat API called (Local mode). Query:", lastMessage);
 
-    const responseText = findBestMatch(lastMessage);
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn("GEMINI_API_KEY is not set.");
+      return NextResponse.json({
+        role: "assistant",
+        content: "I'm currently unable to connect to my brain (API Key missing). Please contact Varun to fix this!"
+      });
+    }
+
+    // transform SOCIALS array to string
+    const socialsString = SOCIALS.map(s => `${s.title}: ${s.url}`).join("\n");
+    const skillsString = PERSONAL_INFO.skills.join(", ");
+
+    const systemPrompt = `
+    You are an AI assistant for Varun Mahajan's portfolio website.
+    Your goal is to answer questions about Varun professionally, clearly, and concisely.
+
+    Here is the data about Varun:
+    Name: ${PERSONAL_INFO.name}
+    Role: ${PERSONAL_INFO.role}
+    Bio: ${PERSONAL_INFO.bio}
+    Email: ${PERSONAL_INFO.email}
+    Skills: ${skillsString}
+    
+    Education:
+    - University: ${PERSONAL_INFO.details.university}
+    - Branch: ${PERSONAL_INFO.details.branch}
+    - Details: ${PERSONAL_INFO.details.rollNumber}, Hometown: ${PERSONAL_INFO.details.hometown}
+
+    Additional Info:
+    - Entrepreneurship: ${PERSONAL_INFO.details.entrepreneurship}
+    - Societies/Clubs: ${PERSONAL_INFO.details.societies}
+    - Sports: ${PERSONAL_INFO.details.sports}
+    - Traits: ${PERSONAL_INFO.details.traits}
+
+    Social Links:
+    ${socialsString}
+
+    Guidelines:
+    1. Keep answers short and to the point. No fluff.
+    2. Only answer questions related to Varun, his work, skills, or contact info.
+    3. If asked about something unrelated (e.g., "Write me a python script for sorting", "Who is the president?"), politely decline and say you can only talk about Varun.
+    4. Tone: Professional, helpful, slightly enthusiastic but grounded.
+    5. If asked for contact details, provide the email and mention the contact button.
+    `;
+
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+    const chat = model.startChat({
+      history: [
+        {
+          role: "user",
+          parts: [{ text: systemPrompt }],
+        },
+        {
+          role: "model",
+          parts: [{ text: "Understood. I am ready to answer questions about Varun Mahajan." }],
+        },
+      ],
+    });
+
+    const result = await chat.sendMessage(lastMessage);
+    const response = await result.response;
+    const text = response.text();
 
     return NextResponse.json({
       role: "assistant",
-      content: responseText
+      content: text
     });
 
   } catch (error: any) {
-    console.error("Error in Local Chat API:", error);
+    console.error("Error in Gemini Chat API:", error);
     return NextResponse.json(
-      { error: "Failed to process chat request" },
+      { error: error instanceof Error ? error.message : "Failed to process chat request" },
       { status: 500 }
     );
   }
-}
-
-function findBestMatch(query: string): string {
-  const q = query.toLowerCase();
-
-  // 1. Identity / Bio
-  if (q.includes("who") || q.includes("name") || q.includes("about") || q.includes("introduce")) {
-    return `I am ${PERSONAL_INFO.name}, a ${PERSONAL_INFO.role}. ${PERSONAL_INFO.bio}`;
-  }
-
-  // 2. Skills / Tech Stack
-  if (q.includes("skill") || q.includes("stack") || q.includes("tech") || q.includes("language") || q.includes("code")) {
-    return `My technical skills include: ${PERSONAL_INFO.skills.join(", ")}. I am also currently exploring C, C++, and Web Development.`;
-  }
-
-  // 3. Contact / Email
-  if (q.includes("contact") || q.includes("email") || q.includes("reach") || q.includes("hire") || q.includes("gmail")) {
-    return `You can reach me at: ${PERSONAL_INFO.email}. feel free to send me a message using the "Let's Talk" button above!`;
-  }
-
-  // 4. Projects / Work
-  if (q.includes("project") || q.includes("work") || q.includes("portfolio") || q.includes("build")) {
-    return `I have worked on several projects, including Neon Nexus (Cyberpunk E-commerce), Aether Lens (Photography), and Orbital Dash (WebGL Game). Check out the "Connect" section for my latest work!`;
-  }
-
-  // 5. Socials / Links
-  if (q.includes("social") || q.includes("link") || q.includes("github") || q.includes("linkedin") || q.includes("instagram")) {
-    const links = SOCIALS.map(s => `${s.title}: ${s.url}`).join("\n");
-    return `Here are my social profiles:\n${links}`;
-  }
-
-  // 6. Education / University
-  if (q.includes("university") || q.includes("college") || q.includes("study") || q.includes("degree") || q.includes("thapar")) {
-    // Safe access to loosely typed details if needed, or just use the known structure from data.ts
-    return `I am studying Computer Engineering (COE) at Thapar Institute of Engineering & Technology (Roll No: 1025030117).`;
-  }
-
-  // 7. General / Hello
-  if (q.includes("hi") || q.includes("hello") || q.includes("hey")) {
-    return `Hello! I'm Varun's AI assistant. Ask me about my skills, projects, or how to contact me.`;
-  }
-
-  // Default Fallback
-  return "I'm a simple portfolio assistant tailored to answer questions about Varun Mahajan. Try asking about my 'skills', 'projects', 'contact info', or 'education'.";
 }

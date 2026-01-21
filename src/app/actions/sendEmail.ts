@@ -1,5 +1,7 @@
 "use server";
 
+import nodemailer from "nodemailer";
+
 export async function sendEmail(formData: FormData) {
     const name = formData.get("name") as string;
     const email = formData.get("email") as string;
@@ -11,8 +13,6 @@ export async function sendEmail(formData: FormData) {
     }
 
     try {
-        const nodemailer = require("nodemailer");
-
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
@@ -20,6 +20,11 @@ export async function sendEmail(formData: FormData) {
                 pass: process.env.GMAIL_PASS,
             },
         });
+
+        if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
+            console.error("Missing GMAIL_USER or GMAIL_PASS");
+            return { success: false, error: "Server config missing details. Did you restart the server?" };
+        }
 
         console.log("Debug Env Vars:");
         console.log("GMAIL_USER:", process.env.GMAIL_USER ? "Set" : "Missing");
@@ -48,6 +53,6 @@ export async function sendEmail(formData: FormData) {
 
     } catch (error) {
         console.error("Error sending email:", error);
-        return { success: false, error: "Failed to send email" };
+        return { success: false, error: error instanceof Error ? error.message : "Failed to send email" };
     }
 }
